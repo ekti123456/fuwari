@@ -2,25 +2,16 @@
 import ArchivePanel from "@components/ArchivePanel.astro";
 
 import MainGridLayout from "@layouts/MainGridLayout.astro";
-import { getSortedPosts } from "@utils/content-utils";
+import { getCollection } from "astro:content";
 
 export async function getStaticPaths() {
-	const posts = await getSortedPosts();
-
-	// タグを集めるための Set の型を指定
-	const allTags = posts.reduce<Set<string>>((acc, post) => {
-		// biome-ignore lint/complexity/noForEach: <explanation>
-		post.data.tags.forEach((tag) => acc.add(tag));
-		return acc;
-	}, new Set());
-
-	const allTagsArray = Array.from(allTags);
-
-	return allTagsArray.map((tag) => ({
-		params: {
-			tag: tag,
-		},
-	}));
+    const posts = await getCollection("posts", ({ data }) => import.meta.env.PROD ? data.draft !== true : true);
+    const tools = await getCollection("tools", ({ data }) => import.meta.env.PROD ? data.draft !== true : true);
+    const allTags = new Set<string>();
+    posts.forEach(p => p.data.tags.forEach(t => allTags.add(t)));
+    tools.forEach(t => t.data.tags.forEach(tag => allTags.add(tag)));
+    const allTagsArray = Array.from(allTags);
+    return allTagsArray.map((tag) => ({ params: { tag } }));
 }
 
 const tag = Astro.params.tag as string;

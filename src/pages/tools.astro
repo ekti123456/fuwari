@@ -1,0 +1,152 @@
+---
+import MainGridLayout from "@layouts/MainGridLayout.astro";
+import { Icon } from "astro-icon/components";
+import type { ToolsData, Tool } from "@/types/data";
+import toolsData from "@/data/tools.json";
+import { umamiConfig, statsConfig } from "../config";
+import type { MarkdownHeading } from "astro";
+
+const { tools } = toolsData as ToolsData;
+
+const groupMap = new Map<string, Tool[]>();
+for (const t of tools) {
+  const c = t.category || "未分类";
+  const arr = groupMap.get(c) || [];
+  arr.push(t);
+  groupMap.set(c, arr);
+}
+const groups = Array.from(groupMap.entries());
+
+const headings: MarkdownHeading[] = groups.map(([category]) => ({
+  depth: 2,
+  slug: `cat-${encodeURIComponent(category)}`,
+  text: category,
+}));
+
+const toolsForStats = tools
+  .filter(t => !!t.slug)
+  .map(t => ({
+    path: `/tools/${t.slug}/`,
+    id: `tool-stats-${t.slug}`
+  }));
+---
+
+<MainGridLayout title="工具推荐" headings={headings}>
+  <div class="card-base p-6 md:p-8">
+    <div class="flex items-center gap-2 mb-6">
+      <div class="h-8 w-8 rounded-lg bg-[var(--primary)] flex items-center justify-center text-white dark:text-black/70">
+        <Icon name="material-symbols:build-circle-outline" class="text-[1.5rem]"></Icon>
+      </div>
+      <h1 class="text-2xl font-bold text-black dark:text-white">工具推荐</h1>
+    </div>
+
+    {groups.map(([category, items]) => (
+      <div>
+        <h2 id={`cat-${encodeURIComponent(category)}`} class="text-xl font-bold text-black dark:text-white mb-4">{category}</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {items.map((tool) => (
+            <a href={tool.slug ? `/tools/${tool.slug}/` : `#`} class:list={["tool-card", {"pointer-events-none": !tool.slug}] }>
+              <img src={tool.icon} loading="lazy" class="tool-icon" alt={`${tool.name}图标`}>
+              <div class="flex-1 min-w-0">
+                <div class="font-bold text-black dark:text-white">{tool.name}</div>
+                <div class="text-sm text-black/50 dark:text-white/50 line-clamp-2">{tool.description}</div>
+                {(tool.slug || tool.statsPath) && (
+                  <div class="text-sm text-black/30 dark:text-white/30 mt-1">
+                    <span id={`tool-stats-${tool.slug || encodeURIComponent(tool.name)}`}>{statsConfig.loadingText}</span>
+                  </div>
+                )}
+              </div>
+            </a>
+          ))}
+        </div>
+        <div class="transition border-t-[1px] border-dashed mx-2 md:mx-6 my-4 border-black/10 dark:border-white/[0.15]"></div>
+      </div>
+    ))}
+  </div>
+</MainGridLayout>
+
+<!-- 为 TOC 的初始化提供动画结束事件 -->
+<div class="prose onload-animation hidden"></div>
+
+{toolsForStats.length > 0 && (
+  <script define:vars={{ toolsForStats, umamiConfig, unavailableText: statsConfig.unavailableText, viewsText: statsConfig.viewsText, visitsText: statsConfig.visitsText }}>
+    function generateStatsText(pageViews, visits) {
+      return `${viewsText} ${pageViews} · ${visitsText} ${visits}`;
+    }
+    async function fetchToolStats(path, id, isRetry = false) {
+      if (!umamiConfig.enable) {
+        return;
+      }
+      try {
+        const { websiteId, token } = await getUmamiShareData(umamiConfig.baseUrl, umamiConfig.shareId);
+        const currentTimestamp = Date.now();
+        const encoded = encodeURIComponent(path);
+        const statsUrl = `${umamiConfig.baseUrl}/analytics/us/api/websites/${websiteId}/stats?startAt=0&endAt=${currentTimestamp}&unit=hour&timezone=${encodeURIComponent(umamiConfig.timezone)}&path=eq.${encoded}&compare=false`;
+        const statsResponse = await fetch(statsUrl, { headers: { 'x-umami-share-token': token } });
+        if (!statsResponse.ok) {
+          if (statsResponse.status === 401 && !isRetry) {
+            clearUmamiShareCache();
+            return fetchToolStats(path, id, true);
+          }
+          throw new Error('failed');
+        }
+        const statsData = await statsResponse.json();
+        const pageViews = statsData.pageviews || 0;
+        const visits = statsData.visitors || 0;
+        const displayElement = document.getElementById(id);
+        if (displayElement) {
+          displayElement.textContent = generateStatsText(pageViews, visits);
+        }
+      } catch (error) {
+        const displayElement = document.getElementById(id);
+        if (displayElement) {
+          displayElement.textContent = unavailableText;
+        }
+      }
+    }
+    function initToolStats() {
+      const start = Date.now();
+      const tryInit = () => {
+        if (typeof getUmamiShareData === 'function') {
+          for (const item of toolsForStats) {
+            fetchToolStats(item.path, item.id);
+          }
+          return;
+        }
+        if (Date.now() - start < 5000) {
+          setTimeout(tryInit, 150);
+        } else {
+          for (const item of toolsForStats) {
+            const el = document.getElementById(item.id);
+            if (el) el.textContent = unavailableText;
+          }
+        }
+      };
+      tryInit();
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initToolStats);
+    } else {
+      initToolStats();
+    }
+  </script>
+)}
+
+<style>
+  .tool-card {
+    @apply flex flex-row items-center gap-3 p-4 rounded-lg bg-[var(--card-bg)] hover:bg-black/5 dark:hover:bg-white/5;
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 0.15s;
+  }
+  .tool-card:active { scale: .98; background-color: var(--btn-regular-bg-active); }
+  .tool-card:hover { background-color: var(--btn-regular-bg-hover); }
+  .tool-card:hover .font-bold { color: var(--btn-content); }
+  .tool-card:hover .text-sm { @apply text-gray-700 dark:text-white; }
+  .tool-card .font-bold, .tool-card .text-sm {
+    transition-property: color;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 0.15s;
+  }
+  .tool-icon { @apply w-16 h-16 rounded-lg object-cover; }
+</style>

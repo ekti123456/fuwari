@@ -38,8 +38,7 @@ export default defineConfig({
     trailingSlash: "always",
     output: "static",
     redirects: {
-      "/donate": "/sponsors",
-      "/donate/": "/sponsors/"
+      "/donate": "/sponsors/"
     },
     integrations: [tailwind({
         nesting: true,

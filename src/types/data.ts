@@ -19,3 +19,17 @@ export interface SponsorsData {
 export interface FriendsData {
   friends: Friend[];
 }
+
+export interface Tool {
+  name: string;
+  icon: string;
+  description: string;
+  url?: string;
+  category: string;
+  slug?: string;
+  statsPath?: string;
+}
+
+export interface ToolsData {
+  tools: Tool[];
+}

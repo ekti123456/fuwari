@@ -1,0 +1,5 @@
+{
+  "tools": [
+    {"name": "ApiProxy", "icon": "", "description": "轻量反向代理与请求调试", "category": "开发", "slug": "api-proxy", "statsPath": "/tools/api-proxy/"}
+  ]
+}
