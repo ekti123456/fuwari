@@ -113,9 +113,11 @@ const { remarkPluginFrontmatter } = await entry.render();
 <div class="transition border-t-[1px] border-dashed mx-6 border-black/10 dark:border-white/[0.15] last:border-t-0 md:hidden"></div>
 
 <script define:vars={{ entry, umamiConfig, unavailableText: statsConfig.unavailableText, viewsText: statsConfig.viewsText, visitsText: statsConfig.visitsText }}>
-    // 客户端统计文案生成函数
     function generateStatsText(pageViews, visits) {
         return `${viewsText} ${pageViews} · ${visitsText} ${visits}`;
+    }
+    async function fetchWithTimeout(promise, ms) {
+        return await Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))]);
     }
     
     // 获取文章浏览量统计
@@ -130,13 +132,10 @@ const { remarkPluginFrontmatter } = await entry.render();
             
             // 第二步：获取统计数据
             const currentTimestamp = Date.now();
-            const statsUrl = `${umamiConfig.baseUrl}/analytics/us/api/websites/${websiteId}/stats?startAt=0&endAt=${currentTimestamp}&unit=hour&timezone=${encodeURIComponent(umamiConfig.timezone)}&path=eq.%2Fposts%2F${slug}%2F&compare=false`;
+            const hostnameParam = umamiConfig.hostname ? `&hostname=eq.${encodeURIComponent(umamiConfig.hostname)}` : '';
+            const statsUrl = `${umamiConfig.baseUrl}/analytics/us/api/websites/${websiteId}/stats?startAt=0&endAt=${currentTimestamp}&unit=hour&timezone=${encodeURIComponent(umamiConfig.timezone)}&path=eq.%2Fposts%2F${slug}%2F${hostnameParam}&compare=false`;
             
-            const statsResponse = await fetch(statsUrl, {
-                headers: {
-                    'x-umami-share-token': token
-                }
-            });
+            const statsResponse = await fetchWithTimeout(fetch(statsUrl, { headers: { 'x-umami-share-token': token } }), 5000);
             
             if (statsResponse.status === 401) {
                 clearUmamiShareCache();
@@ -164,7 +163,6 @@ const { remarkPluginFrontmatter } = await entry.render();
         }
     }
 
-    // 页面加载完成后获取统计数据
     function initPostCardStats() {
         const slug = entry.slug;
         if (slug) {
@@ -176,6 +174,13 @@ const { remarkPluginFrontmatter } = await entry.render();
         document.addEventListener('DOMContentLoaded', initPostCardStats);
     } else {
         initPostCardStats();
+    }
+
+    if (window?.swup?.hooks) {
+        if (!window.__postCardStatsInitHookAdded) {
+            window.swup.hooks.on('page:view', initPostCardStats);
+            window.__postCardStatsInitHookAdded = true;
+        }
     }
 </script>
 

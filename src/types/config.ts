@@ -86,10 +86,11 @@ export type ImageFallbackConfig = {
 };
 
 export type UmamiConfig = {
-	enable: boolean;
-	baseUrl: string;
-	shareId: string;
-	timezone: string;
+    enable: boolean;
+    baseUrl: string;
+    shareId: string;
+    timezone: string;
+    hostname?: string;
 };
 
 export type LIGHT_DARK_MODE =

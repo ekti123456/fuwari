@@ -1,5 +1,13 @@
 {
   "tools": [
-    {"name": "ApiProxy", "icon": "", "description": "轻量反向代理与请求调试", "category": "开发", "slug": "api-proxy", "statsPath": "/tools/api-proxy/"}
+    {
+      "name": "Zeabur",
+      "icon": "https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://zeabur.com&size=64",
+      "description": "你的 AI 运维工程师",
+      "category": "云部署",
+      "slug": "zeabur",
+      "url": "https://zeabur.com",
+      "statsPath": "/tools/zeabur/"
+    }
   ]
 }

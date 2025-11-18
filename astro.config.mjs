@@ -54,6 +54,7 @@ export default defineConfig({
         accessibility: true,
         updateHead: true,
         updateBodyClass: false,
+        reloadScripts: true,
         globalInstance: true,
 		}), icon({
         include: {

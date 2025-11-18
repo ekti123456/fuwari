@@ -4,7 +4,7 @@ import "@fontsource/roboto/400.css";
 import "@fontsource/roboto/500.css";
 import "@fontsource/roboto/700.css";
 
-import { profileConfig, siteConfig } from "@/config";
+import { profileConfig, siteConfig, umamiConfig, statsConfig } from "@/config";
 import ConfigCarrier from "@components/ConfigCarrier.astro";
 import {
 	AUTO_MODE,
@@ -111,7 +111,7 @@ const bannerOffset =
 		<meta property="twitter:url" content={Astro.url}>
 		<meta name="twitter:title" content={pageTitle}>
 		<meta name="twitter:description" content={description}>
-
+		<meta name="msvalidate.01" content="561750EF80801111198C554076E257C5" />
 		<meta name="viewport" content="width=device-width" />
 		<meta name="generator" content={Astro.generator} />
 		<script src="/js/umami-share.js" defer></script>
@@ -714,4 +714,39 @@ if (window.swup) {
 } else {
 	document.addEventListener("swup:enable", setup)
 }
+</script>
+
+<script define:vars={{ umamiConfig, statsConfig }}>
+function generateStatsText(pageViews, visits) { return `${statsConfig.viewsText} ${pageViews} · ${statsConfig.visitsText} ${visits}`; }
+async function fetchWithTimeout(promise, ms) { return await Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))]); }
+async function fetchToolStat(path, el, isRetry) {
+  if (!umamiConfig.enable) return;
+  try {
+    const { websiteId, token } = await getUmamiShareData(umamiConfig.baseUrl, umamiConfig.shareId);
+    const currentTimestamp = Date.now();
+    const encoded = encodeURIComponent(path);
+    const hostnameParam = umamiConfig.hostname ? `&hostname=eq.${encodeURIComponent(umamiConfig.hostname)}` : '';
+    const statsUrl = `${umamiConfig.baseUrl}/analytics/us/api/websites/${websiteId}/stats?startAt=0&endAt=${currentTimestamp}&unit=hour&timezone=${encodeURIComponent(umamiConfig.timezone)}&path=eq.${encoded}${hostnameParam}&compare=false`;
+    const res = await fetchWithTimeout(fetch(statsUrl, { headers: { 'x-umami-share-token': token } }), 5000);
+    if (!res.ok) {
+      if (res.status === 401 && !isRetry) { clearUmamiShareCache(); return fetchToolStat(path, el, true); }
+      throw new Error('failed');
+    }
+    const data = await res.json();
+    const pageViews = data.pageviews || 0; const visits = data.visitors || 0;
+    el.textContent = generateStatsText(pageViews, visits);
+  } catch { el.textContent = statsConfig.unavailableText; }
+}
+function updateToolStats() {
+  const items = Array.from(document.querySelectorAll('[data-stats-path]'));
+  if (!items.length) return;
+  const start = Date.now(); const deadline = 7000;
+  const tick = () => {
+    if (typeof getUmamiShareData !== 'function') { if (Date.now() - start < deadline) return setTimeout(tick, 120); items.forEach(el => el.textContent = statsConfig.unavailableText); return; }
+    items.forEach(el => { const path = el.getAttribute('data-stats-path'); if (path) fetchToolStat(path, el, false); });
+  };
+  tick();
+}
+if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', updateToolStats); } else { updateToolStats(); }
+if (window?.swup?.hooks) { window.swup.hooks.on('page:view', updateToolStats); }
 </script>

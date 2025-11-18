@@ -80,7 +80,7 @@ export const navBarConfig: NavBarConfig = {
         // },
 		{
 			name: "统计",
-			url: "https://cloud.umami.is/share/DSz366DOg4OFeTtr", // Internal links should not include the base path, as it is automatically added
+			url: "https://cloud.umami.is/analytics/us/share/e0fRy9wzWZh9u8Ec?hostname=eq.blog.ekti.cc", // Internal links should not include the base path, as it is automatically added
 			external: true, // Show an external link icon and will open in a new tab
 		},
 		// {
@@ -126,6 +126,7 @@ export const umamiConfig: UmamiConfig = {
 	baseUrl: "https://cloud.umami.is",
 	shareId: "e0fRy9wzWZh9u8Ec",
 	timezone: "Asia/Shanghai",
+	hostname: "blog.ekti.cc",
 };
 
 export const expressiveCodeConfig: ExpressiveCodeConfig = {
