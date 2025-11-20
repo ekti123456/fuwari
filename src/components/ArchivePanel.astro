@@ -1,7 +1,7 @@
 ---
 
-import { getSortedPosts } from "../utils/content-utils";
-import { getPostUrlBySlug } from "../utils/url-utils";
+import { getSortedContent } from "../utils/content-utils";
+import { url } from "../utils/url-utils";
 
 interface Props {
 	keyword?: string;
@@ -9,7 +9,7 @@ interface Props {
 }
 const { tags } = Astro.props;
 
-let posts = await getSortedPosts();
+let posts = await getSortedContent();
 
 if (Array.isArray(tags) && tags.length > 0) {
 	posts = posts.filter(
@@ -68,7 +68,7 @@ function formatTag(tag: string[]) {
                     <div class="w-[70%] md:w-[80%] transition text-left text-50">{group.posts.length} 篇文章</div>
                 </div>
                 {group.posts.map(post => (
-                    <a href={getPostUrlBySlug(post.slug)}
+                    <a href={url(post.url)}
                        aria-label={post.data.title}
                        class="group btn-plain !block h-10 w-full rounded-lg hover:text-[initial]"
                     >

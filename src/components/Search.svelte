@@ -41,7 +41,7 @@ const highlightText = (text: string, keyword: string): string => {
 	return text.replace(regex, "<mark>$1</mark>");
 };
 
-const search = async (keyword: string, isDesktop: boolean): Promise<void> => {
+	const search = async (keyword: string, isDesktop: boolean): Promise<void> => {
 	if (!keyword) {
 		setPanelVisibility(false, isDesktop);
 		result = [];
@@ -56,12 +56,16 @@ const search = async (keyword: string, isDesktop: boolean): Promise<void> => {
 				const keywordLower = keyword.toLowerCase();
 				const searchText =
 					`${post.title} ${post.description} ${post.content}`.toLowerCase();
-				const urlPath = `/posts/${post.link}`;
 				
+				let urlPath = post.link;
+				try {
+					const urlObj = new URL(post.link);
+					urlPath = urlObj.pathname;
+				} catch {}
+
 				// 支持内容搜索和URL后缀搜索
 				return searchText.includes(keywordLower) || 
-					   urlPath.toLowerCase().includes(keywordLower) ||
-					   post.link.toLowerCase().includes(keywordLower);
+					   urlPath.toLowerCase().includes(keywordLower);
 			})
 			.map((post) => {
 				const contentLower = post.content.toLowerCase();
@@ -79,13 +83,19 @@ const search = async (keyword: string, isDesktop: boolean): Promise<void> => {
 					excerpt = post.description || post.content.substring(0, 150) + '...';
 				}
 
+				let urlPath = post.link;
+				try {
+					const urlObj = new URL(post.link);
+					urlPath = urlObj.pathname;
+				} catch {}
+
 				return {
-					url: url(`/posts/${post.link}/`),
+					url: url(urlPath),
 					meta: {
 						title: post.title
 					},
 					excerpt: highlightText(excerpt, keyword),
-					urlPath: `/posts/${post.link}`
+					urlPath: urlPath
 				};
 			});
 
@@ -124,7 +134,7 @@ onMount(async () => {
 				title: item.querySelector("title")?.textContent || "",
 				description: item.querySelector("description")?.textContent || "",
 				content: content,
-				link: item.querySelector("link")?.textContent?.replace(/.*\/posts\/(.*?)\//, "$1") || "",
+				link: item.querySelector("link")?.textContent || "",
 			};
 		});
 	} catch (error) {

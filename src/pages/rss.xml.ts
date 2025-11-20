@@ -7,7 +7,7 @@ import { parse as htmlParser } from 'node-html-parser';
 import { getImage } from 'astro:assets';
 import type { APIContext, ImageMetadata } from 'astro';
 import type { RSSFeedItem } from '@astrojs/rss';
-import { getSortedPosts } from '@/utils/content-utils';
+import { getSortedContent } from '@/utils/content-utils';
 
 const markdownParser = new MarkdownIt();
 
@@ -22,7 +22,7 @@ export async function GET(context: APIContext) {
 	}
 
 	// Use the same ordering as site listing (pinned first, then by published desc)
-	const posts = await getSortedPosts();
+	const posts = await getSortedContent();
 	const feed: RSSFeedItem[] = [];
 
 	for (const post of posts) {
@@ -44,7 +44,7 @@ export async function GET(context: APIContext) {
 				if (src.startsWith('./')) {
 					// Path relative to the post file directory
 					const prefixRemoved = src.slice(2);
-					importPath = `/src/content/posts/${prefixRemoved}`;
+					importPath = `/src/content/${post.collection}/${prefixRemoved}`;
 				} else {
 					// Path like ../assets/images/xxx -> relative to /src/content/
 					const cleaned = src.replace(/^\.\.\//, '');
@@ -66,7 +66,7 @@ export async function GET(context: APIContext) {
 			title: post.data.title,
 			description: post.data.description,
 			pubDate: post.data.published,
-			link: `/posts/${post.slug}/`,
+			link: post.url,
 			// sanitize the new html string with corrected image paths
 			content: sanitizeHtml(html.toString(), {
 				allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img']),

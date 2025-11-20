@@ -28,6 +28,43 @@ export async function getSortedPosts() {
 	return sorted;
 }
 
+export async function getSortedContent() {
+	const allBlogPosts = await getCollection("posts", ({ data }) => {
+		return import.meta.env.PROD ? data.draft !== true : true;
+	});
+	const allTools = await getCollection("tools", ({ data }) => {
+		return import.meta.env.PROD ? data.draft !== true : true;
+	});
+
+	const postsWithUrl = allBlogPosts.map(post => ({
+		...post,
+		url: `/posts/${post.slug}/`,
+		collection: 'posts'
+	}));
+
+	const toolsWithUrl = allTools.map(tool => ({
+		...tool,
+		url: `/tools/${tool.slug}/`,
+		collection: 'tools'
+	}));
+
+	const allContent = [...postsWithUrl, ...toolsWithUrl];
+
+	const sorted = allContent.sort((a, b) => {
+		const pinnedA = 'pinned' in a.data ? a.data.pinned : false;
+		const pinnedB = 'pinned' in b.data ? b.data.pinned : false;
+
+		if (pinnedA !== pinnedB) {
+			return pinnedA ? -1 : 1;
+		}
+		const dateA = new Date(a.data.published);
+		const dateB = new Date(b.data.published);
+		return dateA > dateB ? -1 : 1;
+	});
+
+	return sorted;
+}
+
 export type Tag = {
 	name: string;
 	count: number;
@@ -37,10 +74,21 @@ export async function getTagList(): Promise<Tag[]> {
 	const allBlogPosts = await getCollection<"posts">("posts", ({ data }) => {
 		return import.meta.env.PROD ? data.draft !== true : true;
 	});
+	const allTools = await getCollection<"tools">("tools", ({ data }) => {
+		return import.meta.env.PROD ? data.draft !== true : true;
+	});
 
 	const countMap: { [key: string]: number } = {};
+
 	allBlogPosts.map((post: { data: { tags: string[] } }) => {
 		post.data.tags.map((tag: string) => {
+			if (!countMap[tag]) countMap[tag] = 0;
+			countMap[tag]++;
+		});
+	});
+
+	allTools.map((tool: { data: { tags: string[] } }) => {
+		tool.data.tags.map((tag: string) => {
 			if (!countMap[tag]) countMap[tag] = 0;
 			countMap[tag]++;
 		});
