@@ -1,0 +1,52 @@
+---
+import MainGridLayout from "@layouts/MainGridLayout.astro";
+import { Icon } from "astro-icon/components";
+import type { ToolsData, Tool } from "@/types/data";
+import toolsData from "@/data/tools.json";
+import { umamiConfig, statsConfig } from "../config";
+import type { MarkdownHeading } from "astro";
+import ToolCard from "@/components/ToolCard.astro";
+
+const { tools } = toolsData as ToolsData;
+
+const groupMap = new Map<string, Tool[]>();
+for (const t of tools) {
+  const c = t.category || "未分类";
+  const arr = groupMap.get(c) || [];
+  arr.push(t);
+  groupMap.set(c, arr);
+}
+const groups = Array.from(groupMap.entries());
+
+const headings: MarkdownHeading[] = groups.map(([category]) => ({
+  depth: 2,
+  slug: `cat-${encodeURIComponent(category)}`,
+  text: category,
+}));
+---
+
+<MainGridLayout title="工具推荐" headings={headings}>
+  <div class="card-base p-6 md:p-8">
+    <div class="flex items-center gap-2 mb-6">
+      <div class="h-8 w-8 rounded-lg bg-[var(--primary)] flex items-center justify-center text-white dark:text-black/70">
+        <Icon name="material-symbols:build-circle-outline" class="text-[1.5rem]"></Icon>
+      </div>
+      <h1 class="text-2xl font-bold text-black dark:text-white">工具推荐</h1>
+    </div>
+
+    {groups.map(([category, items]) => (
+      <div>
+        <h2 id={`cat-${encodeURIComponent(category)}`} class="text-xl font-bold text-black dark:text-white mb-4">{category}</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {items.map((tool) => (
+            <ToolCard tool={tool} />
+          ))}
+        </div>
+        <div class="transition border-t-[1px] border-dashed mx-2 md:mx-6 my-4 border-black/10 dark:border-white/[0.15]"></div>
+      </div>
+    ))}
+  </div>
+</MainGridLayout>
+
+<!-- 为 TOC 的初始化提供动画结束事件 -->
+<div class="prose onload-animation hidden"></div>

@@ -1,0 +1,22 @@
+---
+import ArchivePanel from "@components/ArchivePanel.astro";
+
+import MainGridLayout from "@layouts/MainGridLayout.astro";
+import { getCollection } from "astro:content";
+
+export async function getStaticPaths() {
+    const posts = await getCollection("posts", ({ data }) => import.meta.env.PROD ? data.draft !== true : true);
+    const tools = await getCollection("tools", ({ data }) => import.meta.env.PROD ? data.draft !== true : true);
+    const allTags = new Set<string>();
+    posts.forEach(p => p.data.tags.forEach(t => allTags.add(t)));
+    tools.forEach(t => t.data.tags.forEach(tag => allTags.add(tag)));
+    const allTagsArray = Array.from(allTags);
+    return allTagsArray.map((tag) => ({ params: { tag } }));
+}
+
+const tag = Astro.params.tag as string;
+---
+
+<MainGridLayout title={`${tag} - 标签`} description={`归档 - ${tag}`}>
+    <ArchivePanel tags={[tag]}></ArchivePanel>
+</MainGridLayout>
