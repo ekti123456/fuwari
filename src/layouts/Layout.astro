@@ -88,11 +88,16 @@ const bannerOffset =
 >
 	<head>
 	<script is:inline>
-			(function() {
-				const randomNum = Math.floor(Math.random() * 1100) + 1;
-				document.documentElement.style.setProperty('--bg-url', `url(https://p.2x.nz/ri/h/${randomNum}.webp)`);
-			})();
-		</script>
+		(function() {
+			const storageKey = 'bg-random-num';
+			let randomNum = sessionStorage.getItem(storageKey);
+			if (!randomNum) {
+				randomNum = Math.floor(Math.random() * 1100) + 1;
+				sessionStorage.setItem(storageKey, randomNum);
+			}
+			document.documentElement.style.setProperty('--bg-url', `url(https://p.2x.nz/ri/h/${randomNum}.webp)`);
+		})();
+	</script>
 
 		<title>{pageTitle}</title>
 
