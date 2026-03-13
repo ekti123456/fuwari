@@ -95,7 +95,9 @@ const bannerOffset =
 				randomNum = Math.floor(Math.random() * 1100) + 1;
 				sessionStorage.setItem(storageKey, randomNum);
 			}
-			document.documentElement.style.setProperty('--bg-url', `url(https://p.2x.nz/ri/h/${randomNum}.webp)`);
+			// Add cache-buster to prevent 304 responses
+			const cacheBuster = Date.now();
+			document.documentElement.style.setProperty('--bg-url', `url(https://p.2x.nz/ri/h/${randomNum}.webp?v=${cacheBuster})`);
 		})();
 	</script>
 
