@@ -1,4 +1,5 @@
 ---
+import { Icon } from "astro-icon/components";
 import { umamiConfig, statsConfig } from "@/config";
 
 interface Props {
@@ -22,19 +23,19 @@ const statsPath = tool.statsPath || (tool.slug ? `/tools/${tool.slug}/` : null);
     <div class="font-bold text-black dark:text-white">{tool.name}</div>
     <div class="text-sm text-black/50 dark:text-white/50 line-clamp-2">{tool.description}</div>
     {statsPath && (
-      <div class="text-sm text-black/30 dark:text-white/30 mt-1">
-        <span id={id}>{statsConfig.loadingText}</span>
+      <div class="text-sm text-black/30 dark:text-white/30 mt-1 flex items-center gap-1">
+        <div class="meta-icon">
+            <Icon name="material-symbols:visibility-outline-rounded" class="text-base"></Icon>
+        </div>
+        <span id={id}>0</span>
+        <span class="text-black/30 dark:text-white/30">{statsConfig.viewsText}</span>
       </div>
     )}
   </div>
 </a>
 
 {statsPath && (
-<script define:vars={{ id, statsPath, umamiConfig, unavailableText: statsConfig.unavailableText, viewsText: statsConfig.viewsText, visitsText: statsConfig.visitsText }}>
-    function generateStatsText(pageViews, visits) {
-      return `${viewsText} ${pageViews} · ${visitsText} ${visits}`;
-    }
-
+<script define:vars={{ id, statsPath, umamiConfig, unavailableText: statsConfig.unavailableText }}>
     async function fetchWithTimeout(promise, ms) {
       return await Promise.race([
         promise,
@@ -45,7 +46,6 @@ const statsPath = tool.statsPath || (tool.slug ? `/tools/${tool.slug}/` : null);
     async function fetchToolStats(path, id, isRetry = false) {
       if (!umamiConfig.enable) return;
       try {
-        // Wait for getUmamiShareData to be available
         if (typeof getUmamiShareData !== 'function') {
             setTimeout(() => fetchToolStats(path, id, isRetry), 100);
             return;
@@ -67,9 +67,15 @@ const statsPath = tool.statsPath || (tool.slug ? `/tools/${tool.slug}/` : null);
         }
         const statsData = await statsResponse.json();
         const pageViews = statsData.pageviews || 0;
-        const visits = statsData.visitors || 0;
         const displayElement = document.getElementById(id);
-        if (displayElement) displayElement.textContent = generateStatsText(pageViews, visits);
+        if (displayElement) {
+          const currentViews = parseInt(displayElement.textContent) || 0;
+          if (currentViews === 0) {
+            animateValue(displayElement, 0, pageViews, 1000);
+          } else {
+            displayElement.textContent = pageViews;
+          }
+        }
       } catch (error) {
         console.error('Error fetching stats for', path, error);
         const displayElement = document.getElementById(id);

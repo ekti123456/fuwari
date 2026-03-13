@@ -12,6 +12,7 @@ interface Props {
 	tags: string[];
 	hideTagsForMobile?: boolean;
 	hideUpdateDate?: boolean;
+	hidePageViews?: boolean;
 	slug?: string;
 	basePath?: string;
 }
@@ -21,6 +22,7 @@ const {
 	tags,
 	hideTagsForMobile = false,
 	hideUpdateDate = false,
+	hidePageViews = false,
 	slug,
 	basePath = "/posts",
 } = Astro.props;
@@ -73,29 +75,22 @@ const className = Astro.props.class;
             <div class="meta-icon">
                 <Icon name="material-symbols:visibility-outline-rounded" class="text-xl"></Icon>
             </div>
-            <span class="text-50 text-sm font-medium" id="page-views-display">{statsConfig.loadingText}</span>
+            <span class="text-50 text-sm font-medium" id={`page-views-${slug}`}>0</span>
+            <span class="text-50 text-sm font-medium">{statsConfig.viewsText}</span>
         </div>
     )}
 </div>
 
 {slug && (
-    <script define:vars={{ slug, basePath, umamiConfig, unavailableText: statsConfig.unavailableText, viewsText: statsConfig.viewsText, visitsText: statsConfig.visitsText }}>
-        // 客户端统计文案生成函数
-        function generateStatsText(pageViews, visits) {
-            return `${viewsText} ${pageViews} · ${visitsText} ${visits}`;
-        }
-        
-        // 获取访问量统计
+    <script define:vars={{ slug, basePath, umamiConfig, unavailableText: statsConfig.unavailableText }}>
         async function fetchPageViews(isRetry = false) {
             if (!umamiConfig.enable) {
                 return;
             }
             
             try {
-                // 调用全局工具获取 Umami 分享数据
                 const { websiteId, token } = await getUmamiShareData(umamiConfig.baseUrl, umamiConfig.shareId);
                 
-                // 第二步：获取统计数据
                 const currentTimestamp = Date.now();
                 const hostnameParam = umamiConfig.hostname ? `&hostname=${encodeURIComponent(umamiConfig.hostname)}` : '';
                 const statsUrl = `${umamiConfig.baseUrl}/analytics/us/api/websites/${websiteId}/stats?startAt=0&endAt=${currentTimestamp}&unit=hour&timezone=${encodeURIComponent(umamiConfig.timezone)}&path=eq.${encodeURIComponent(basePath)}%2F${slug}%2F${hostnameParam}`;
@@ -115,23 +110,26 @@ const className = Astro.props.class;
                 }
                 
                 const statsData = await statsResponse.json();
-            const pageViews = statsData.pageviews || 0;
-            const visits = statsData.visitors || 0;
+                const pageViews = statsData.pageviews || 0;
                 
-                const displayElement = document.getElementById('page-views-display');
+                const displayElement = document.getElementById('page-views-' + slug);
                 if (displayElement) {
-                    displayElement.textContent = generateStatsText(pageViews, visits);
+                    const currentViews = parseInt(displayElement.textContent) || 0;
+                    if (currentViews === 0) {
+                        animateValue(displayElement, 0, pageViews, 1000);
+                    } else {
+                        displayElement.textContent = pageViews;
+                    }
                 }
             } catch (error) {
                 console.error('Error fetching page views:', error);
-                const displayElement = document.getElementById('page-views-display');
+                const displayElement = document.getElementById('page-views-' + slug);
                 if (displayElement) {
                     displayElement.textContent = unavailableText;
                 }
             }
         }
 
-        // 页面加载完成后获取统计数据
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', fetchPageViews);
         } else {

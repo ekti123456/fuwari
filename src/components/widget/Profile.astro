@@ -39,29 +39,25 @@ const config = profileConfig;
         <div class="text-center text-sm text-neutral-500 dark:text-neutral-400 mt-3 pt-3 border-t border-neutral-200 dark:border-neutral-700">
             <div class="flex items-center justify-center gap-1">
                 <Icon name="material-symbols:visibility-outline" class="text-base"></Icon>
-                <span id="site-stats">{statsConfig.loadingText}</span>
+                <span>{statsConfig.viewsText}</span>
+                <span id="site-pageviews">0</span>
+                <span> · </span>
+                <span>{statsConfig.visitsText}</span>
+                <span id="site-visitors">0</span>
             </div>
         </div>
     </div>
 </div>
 
-<script define:vars={{ umamiConfig, unavailableText: statsConfig.unavailableText, viewsText: statsConfig.viewsText, visitsText: statsConfig.visitsText }}>
-    // 获取全站访问量统计
-    // 客户端统计文案生成函数
-    function generateStatsText(pageViews, visits) {
-        return `${viewsText} ${pageViews} · ${visitsText} ${visits}`;
-    }
-    
+<script define:vars={{ umamiConfig }}>
     async function loadSiteStats() {
         if (!umamiConfig.enable) {
             return;
         }
         
         try {
-            // 调用全局工具获取 Umami 分享数据
             const { websiteId, token } = await getUmamiShareData(umamiConfig.baseUrl, umamiConfig.shareId);
             
-            // 第二步：获取全站统计数据（不指定url参数获取全站数据）
             const currentTimestamp = Date.now();
             const hostnameParam = umamiConfig.hostname ? `&hostname=eq.${encodeURIComponent(umamiConfig.hostname)}` : '';
             const statsUrl = `${umamiConfig.baseUrl}/analytics/us/api/websites/${websiteId}/stats?startAt=0&endAt=${currentTimestamp}&unit=hour&timezone=${encodeURIComponent(umamiConfig.timezone)}${hostnameParam}`;
@@ -73,7 +69,6 @@ const config = profileConfig;
              });
             
             if (statsResponse.status === 401) {
-                // token 失效，清理缓存后重新获取一次
                 clearUmamiShareCache();
                 return await loadSiteStats();
             }
@@ -86,20 +81,18 @@ const config = profileConfig;
             const pageviews = statsData.pageviews || 0;
             const visitors = statsData.visitors || 0;
             
-            const statsElement = document.getElementById('site-stats');
-            if (statsElement) {
-                statsElement.textContent = generateStatsText(pageviews, visitors);
+            const viewsElement = document.getElementById('site-pageviews');
+            const visitorsElement = document.getElementById('site-visitors');
+            
+            if (viewsElement && visitorsElement) {
+                animateValue(viewsElement, 0, pageviews, 1000);
+                animateValue(visitorsElement, 0, visitors, 1000);
             }
         } catch (error) {
             console.error('获取全站统计失败:', error);
-            const statsElement = document.getElementById('site-stats');
-            if (statsElement) {
-                statsElement.textContent = unavailableText;
-            }
         }
     }
 
-    // 页面加载完成后获取统计数据
     document.addEventListener('DOMContentLoaded', loadSiteStats);
 </script>
 

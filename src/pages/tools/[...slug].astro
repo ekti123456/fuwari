@@ -184,28 +184,17 @@ try {
       <br />
     </div>
   </div>
-<script define:vars={{ entry, umamiConfig, unavailableText: statsConfig.unavailableText, viewsText: statsConfig.viewsText, visitsText: statsConfig.visitsText }}>
-    // 客户端统计文案生成函数
-    function generateStatsText(pageViews, visits) {
-        return `${viewsText} ${pageViews} · ${visitsText} ${visits}`;
-    }
-
-    // 获取文章浏览量统计
+<script define:vars={{ entry, umamiConfig, unavailableText: statsConfig.unavailableText }}>
     async function fetchToolViews(slug) {
         if (!umamiConfig.enable) {
             return;
         }
 
         try {
-            // 注意：这里假设 getUmamiShareData 是全局可用的，或者是你之前定义过的工具函数
-            // 如果报错 getUmamiShareData is not defined，你需要引入它或者把那个函数的代码粘贴到这里
             const { websiteId, token } = await getUmamiShareData(umamiConfig.baseUrl, umamiConfig.shareId);
 
             const currentTimestamp = Date.now();
 
-            // !!! 关键修改点 !!!
-            // 1. 将 path 改为 /tools/
-            // 2. 加上 hostname 过滤
             const statsUrl = `${umamiConfig.baseUrl}/analytics/us/api/websites/${websiteId}/stats?startAt=0&endAt=${currentTimestamp}&unit=hour&timezone=${encodeURIComponent(umamiConfig.timezone)}&path=eq.%2Ftools%2F${slug}%2F&hostname=eq.${umamiConfig.hostname}`;
 
             const statsResponse = await fetch(statsUrl, {
@@ -215,7 +204,6 @@ try {
             });
 
             if (statsResponse.status === 401) {
-                // 简单的重试逻辑，或者清除缓存重新获取 token
                 return;
             }
 
@@ -225,13 +213,16 @@ try {
 
             const statsData = await statsResponse.json();
             const pageViews = statsData.pageviews || 0;
-            const visits = statsData.visitors || 0;
 
-            // 更新 UI，ID 通常由 PostMetadata 组件生成，一般是 page-views-{slug}
             const displayElement = document.getElementById(`page-views-${slug}`);
-             if (displayElement) {
-                 displayElement.textContent = generateStatsText(pageViews, visits);
-             }
+            if (displayElement) {
+                const currentViews = parseInt(displayElement.textContent) || 0;
+                if (currentViews === 0) {
+                    animateValue(displayElement, 0, pageViews, 1000);
+                } else {
+                    displayElement.textContent = pageViews;
+                }
+            }
         } catch (error) {
             console.error('Error fetching views for tool', slug, ':', error);
             const displayElement = document.getElementById(`page-views-${slug}`);
@@ -241,7 +232,6 @@ try {
         }
     }
 
-    // 页面加载完成后获取统计数据
     function initToolStats() {
         const slug = entry.slug;
         if (slug) {
